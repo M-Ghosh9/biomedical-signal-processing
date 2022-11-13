@@ -1,0 +1,179 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import scipy.signal as sgn
+data=pd.read_excel("eric.xlsx")
+// plot the graph of the dataset
+fig,axes=plt.subplots(2 , 1 , figsize=(8,10))
+for i,ax in enumerate(axes.flatten()):
+    y=data.iloc[:,1].values
+    ax.plot(y,color=plt.cm.Paired(i/10.))
+print("Original")
+
+plt.show()
+print("Filtered")
+
+//visualize per 100 dataset values
+fig,axes=plt.subplots(2, 1 , figsize=(5,5))
+leads=['Ori','Filt']
+for i,ax in enumerate(axes.flatten()):
+    y=data.iloc[0:100,i].values
+    y=y/1000
+    ax.plot(y,color=plt.cm.Paired(i/10.),label=leads[i])
+    axes[i].set_ylabel('Amplitude')
+    plt.xlabel('Sample Point')
+    axes[i].legend()
+plt.show()
+
+//visualize 100 to 500 values
+fig,axes=plt.subplots(2, 1 , figsize=(5,5))
+leads=['Ori','Filt']
+for i,ax in enumerate(axes.flatten()):
+    y=data.iloc[100:500,i].values
+    y=y/1000
+    ax.plot(y,color=plt.cm.Paired(i/10.),label=leads[i])
+    axes[i].set_ylabel('Amplitude')
+    plt.xlabel('Sample Point')
+    axes[i].legend()
+plt.show()
+
+// visualze 500 to 1000 values 
+fig,axes=plt.subplots(2, 1 , figsize=(5,5))
+leads=['Ori','Filt']
+for i,ax in enumerate(axes.flatten()):
+    y=data.iloc[500:1000,i].values
+    y=y/1000
+    ax.plot(y,color=plt.cm.Paired(i/10.),label=leads[i])
+    axes[i].set_ylabel('Amplitude')
+    plt.xlabel('Sample Point')
+    axes[i].legend()
+plt.show()
+
+// visualize 1000 to the end of dataset
+fig,axes=plt.subplots(2, 1 , figsize=(5,5))
+leads=['Ori','Filt']
+for i,ax in enumerate(axes.flatten()):
+    y=data.iloc[1000:1406,i].values
+    y=y/1000
+    ax.plot(y,color=plt.cm.Paired(i/10.),label=leads[i])
+    axes[i].set_ylabel('Amplitude')
+    plt.xlabel('Sample Point')
+    axes[i].legend()
+plt.show()
+
+//compute a periodogram and a welch periodogram
+x = data['Original']
+fs = 1000
+
+# Generate time vector
+t = np.arange(len(x))*1/fs
+
+# Compute welch periodogram
+freq, Pxx = sgn.welch(x, fs)  //shows better peaks and distribution but has low resolution
+#compute periodogram
+f1,pxx=sgn.periodogram(x,fs)  //has better resolution but not distinct showcasing of the frequency peaks
+
+#show plots
+plt.figure(1)
+plt.plot(freq,Pxx)
+plt.figure(2)
+plt.plot(f1,pxx)
+
+
+//applying a notch filter to eradicate a particualr frequency range from the dataset
+def iirnotch(w0, bw, ab=3):
+    """
+    Design second-order IIR notch digital filter.
+
+    Parameters
+    ----------
+    w0 : float
+        A scalar that must satisfy  0 < w0 < 1. For
+        notch filters, w0 is the normalized frequency 
+        to remove from the filtered signal (w0 = 1 
+        corresponds to half of the sample frequency).
+    bw : float
+        Filter bandwidth.
+    ab : float, optional
+        Atenuation in decibels. By default, `ab`
+        is 3. So the atenuation is -3 dB or -10*log10(1/2) dB.
+
+    Returns
+    -------
+    b, a : ndarray, ndarray
+        Numerator (`b`) and denominator (`a`) polynomials
+        of the IIR filter.
+        
+    Notes
+    -----
+    The quality factor (Q factor) for the filter is related to the 
+    filter bandwidth by Q = w0/bw (for the default value of `ab`).
+    
+    References
+    ----------
+    .. [1] Sophocles J. Orfanidis, "Introduction To Signal Processing",
+           Prentice-Hall, 1996
+    """
+ # Normalize inputs
+    bw = bw*np.pi
+    w0 = w0*np.pi
+
+    # Compute atenuation from ab
+    gb = 10.0**(-ab/20.0)
+
+    # Compute beta
+    beta = (np.sqrt(1.0-gb**2.0)/gb)*np.tan(bw/2.0)
+
+    # Compute gain
+    gain = 1.0/(1.0+beta)
+
+    # Compute numerator (`b`) and denominator (`a`):
+    # formula 11.3.7 from reference [1]
+    b = gain*np.array([1.0, -2.0*np.cos(w0), 1.0])
+    a = np.array([1.0, -2.0*gain*np.cos(w0), (2.0*gain-1.0)])
+
+    return (b, a)
+    
+    //applying the notch filter to the dataset
+    # Apply notch filter to the signal
+x_notch  = sgn.filtfilt(b, a, x)
+# Compute welch periodogram
+freq, Pxx_notch = sgn.welch(x_notch, fs, window='hamming', nperseg=1000, nfft=4096, scaling='density')
+fq, pxx=sgn.periodogram(x_notch,fs)
+# Plot signal
+fig, ax = plt.subplots(1, 2, figsize=(15, 8))
+tmax = max(t[1:1000])
+ax[0].plot(t[1:1000], x_notch[1:1000], 'k')
+ax[0].set_ylabel("Voltage (mV)", fontsize=18)
+ax[0].set_xlabel("Time (s)", fontsize=18)
+ax[0].set_title("Signal", fontsize=20)
+ax[0].axis([0, tmax, round(1.2*min(x),1), round(1.2*max(x),1)])
+ax[0].set_xticks(np.arange(0, tmax+0.2, 0.2), minor=True)
+ax[0].set_yticks(np.arange(round(1.2*min(x),1), round(1.2*max(x),1), 0.1), minor=True)
+ax[0].grid(which='minor')
+ax[0].grid()
+# Plot welch periodogram
+ax[1].plot(freq, Pxx_notch)
+ax[1].grid()
+ax[1].set_title("Welch Periodogram", fontsize=20)
+ax[1].set_ylabel("Power Spectral Density (mV$^2/$Hz)", fontsize=18)
+ax[1].set_xlabel("Frequency (Hz)", fontsize=18)
+ax[1].set_xlim([0, 1400])
+
+#plot periodogram
+ax[1].plot(fq, pxx)
+ax[1].grid()
+ax[1].set_title("Periodogram", fontsize=20)
+ax[1].set_ylabel("Power Spectral Density (mV$^2/$Hz)", fontsize=18)
+ax[1].set_xlabel("Frequency (Hz)", fontsize=18)
+ax[1].set_xlim([0, 1400])
+#show figures
+#show signal
+plt.figure(1)
+plt.show()
+#show welch
+plt.figure(2)
+plt.show()
+#show periodogram
+plt.figure(3)
+plt.show()
