@@ -6,3 +6,5 @@ The focus of this work will be the signal processing and measurement step, for w
 Electrocardiogram abnormalities that do not result from the electrical activity of the heart are defined as artifacts. Artifacts are not uncommon in patients undergoing ECG monitoring. They alter the morphology of the ECG and can lead to diagnostic errors, both false positives, mimicking arrhythmias, and false negatives, hiding findings consistent with heart disease.
 
 Among the main artifacts present, the following stand out: Electric grid interference; Low frequency fluctuations (Baseline Wander); High frequency noise and muscle noise. 
+
+![image](https://user-images.githubusercontent.com/99464067/201503419-26494cb0-816a-4d3c-9db5-33b8c98e1d05.png)
